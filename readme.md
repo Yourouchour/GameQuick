@@ -203,3 +203,197 @@ stage.mainloop()
 这时，你会看到，角色会绕着左上角开始旋转。
 
 实际上，角色的旋转中心并不一定在角色图片内部，因此你只通过设置旋转中心，便可以让角色绕着任何一点旋转。
+
+
+### GameQuick 角色的外貌
+
+#### 导入外貌
+
+GameQuick 规定：任何一个角色在创建时必须有一个外貌。
+
+GameQuick 角色的外貌由 `SpImage`类表示。
+
+`SpImage`类支持导入图片，即`SpImage.load`方法。
+
+```python
+from gamequick import Stage, Sprite, SpImage
+
+stage = Stage(800, 600)
+stage.title("GameQuick")
+stage.add_background_load("background.png")
+
+player = Sprite(stage, SpImage.load("player.png"), (400, 300))
+stage.mainloop()
+```
+
+这时，你应该能看到一个角色在屏幕上。
+
+#### 切换外貌
+
+GameQuick 允许你的角色拥有多个外貌，通过
+`Sprite.next_image`、`Sprite.last_image`和`Sprite.set_image_index`方法，你可以切换角色的外貌。
+
+因此我们可以制作一个闪烁的角色。
+
+需要注意的是：因为 GameQuick 通过 yield 来控制脚本，因此传统的 time.sleep() 方法无法使用。我们需要用下面的程序进行等待：
+
+```python
+while True:
+    # 等待 0.5 秒
+    timer = 0.5
+    while timer > 0:
+        timer -= yield
+```
+
+下面我们可以制作一个闪烁的角色了：
+
+```python
+from gamequick import Stage, Sprite, SpImage
+
+stage = Stage(800, 600)
+stage.title("GameQuick")
+stage.add_background_load("background.png")
+
+player = Sprite(stage, SpImage.load("player.png"), (400, 300))
+player.add_image(SpImage.load("player2.png"))
+
+# 切换外貌
+def change_image():
+    while True:
+        timer = 0.5
+        while timer > 0:
+            timer -= yield
+        player.next_image()
+
+stage.add_script(change_image())
+
+stage.mainloop()
+```
+
+### GameQuick 键鼠控制角色
+
+#### 键盘控制角色
+
+在 GameQuick 中，键盘控制角色有`KeyVector`类。它包含了一些常用的键位，如WASD等。
+
+尽管这个类叫做 KeyVector，但它实际上返回键的长度和方向。
+
+```python
+from gamequick import Stage, Sprite, KeyVector
+
+stage = Stage(800, 600)
+stage.title("GameQuick")
+stage.add_background_load("background.png")
+
+player = Sprite(stage, SpImage.load("player.png"), (400, 300))
+
+# 键盘控制角色
+def move():
+    speed = 100
+    while True:
+        delta = yield
+        length, angle = KeyVector.WASD()
+        player.rotate_to(angle)
+        player.move(speed * delta * length)
+
+stage.add_script(move())
+
+stage.mainloop()
+```
+
+这时，你可以通过键盘控制角色了。
+
+#### 鼠标控制角色
+
+在 GameQuick 中，鼠标控制角色有`MouseVector`类。
+
+```python
+from gamequick import Stage, Sprite, MouseVector
+
+stage = Stage(800, 600)
+stage.title("GameQuick")
+stage.add_background_load("background.png")
+
+player = Sprite(stage, SpImage.load("player.png"), (400, 300))
+
+# 鼠标控制角色
+def move():
+    speed = 100
+    while True:
+        delta = yield
+        x, y = MouseVector.get()
+        player.rotate_to(player.get_angle_to(x, y))
+        player.move(speed * delta)
+
+stage.add_script(move())
+
+stage.mainloop()
+```
+
+### GameQuick 角色的复制和删除
+
+#### 角色的复制
+
+在 GameQuick 中，你可以通过`Sprite.copy`来复制角色。
+
+```python
+player2 = player.copy()
+```
+
+这样，`player2`便是一个和`player`一模一样的角色。
+
+因此我们可以实现下面的程序：
+
+```python
+from gamequick import Stage, Sprite, MouseVector
+
+stage = Stage(800, 600)
+stage.title("GameQuick")
+stage.add_background_load("background.png")
+
+player = Sprite(stage, SpImage.load("player.png"), (400, 300))
+
+def move():
+    speed = 100
+    while True:
+        delta = yield
+        x, y = MouseVector.get()
+        player.rotate_to(player.get_angle_to(x, y))
+        player.move(speed * delta)
+
+def copy_move(player2):
+    speed = 100
+    timer = 1
+    while timer > 0:
+        timer -= yield
+    while True:
+        delta = yield
+        x, y = MouseVector.get()
+        player2.rotate_to(player.get_angle_to(x, y))
+        player2.move(speed * delta)
+
+def copy():
+    while True:
+        timer = 3
+        while timer > 0:
+            timer -= yield
+        player2 = player.copy()
+        stage.add_script(copy_move(player2))
+        
+stage.add_script(move())
+stage.add_script(copy())
+
+stage.mainloop()
+```
+
+运行这段程序，你将看到角色每隔3秒复制一次，并且每次复制后，新的角色会跟随鼠标移动。
+
+#### 角色的删除
+
+在 GameQuick 中，你可以通过`Sprite.remove`来删除角色。
+
+```python
+player.remove()
+```
+
+remove 只会将角色从舞台上移除，但不会删除角色对象。
