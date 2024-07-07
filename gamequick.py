@@ -1,4 +1,4 @@
-from typing import List, Generator
+from typing import Any, List, Generator
 import pygame
 import time
 import math
@@ -51,6 +51,13 @@ class KeyVector:
         if vector.length() > 0:
             vector = vector.normalize()
         return vector.angle_to((0, 0)), vector.length()
+    
+class MouseVector:
+
+    @classmethod
+    def get(cls):
+        x, y = pygame.mouse.get_pos()
+        return x, y
 
 class Stage:
     def __init__(self, width, height):
@@ -126,17 +133,19 @@ class SpImage:
             center = (w // 2, h // 2)
         self.center = center
 
-    def get_image(self, x, y, angle):
+    def get_image(self, x, y, angle, scale):
         '''
         将图片围绕相对图片左上角坐标self.center为旋转中心，旋转angle度，并将旋转中心移动到(x, y)
         '''
         #计算图片四点坐标
         w, h = self.image.get_size()
         m, n = self.center
+        cos = math.cos(math.radians(angle))
+        sin = math.sin(math.radians(angle))
         def rotate(a, b):
             return (
-                a * math.cos(math.radians(angle)) - b * math.sin(math.radians(angle)),
-                a * math.sin(math.radians(angle)) + b * math.cos(math.radians(angle))
+                a * cos - b * sin,
+                a * sin + b * cos
             )
         
         x1, y1 = rotate(-m, -n)
@@ -147,7 +156,7 @@ class SpImage:
         xmin = min(x1, x2, x3, x4) + x
         ymin = min(y1, y2, y3, y4) + y
         #计算旋转后的图片
-        img = pygame.transform.rotozoom(self.image, -angle, 1)
+        img = pygame.transform.rotozoom(self.image, -angle, scale)
 
         #计算图片的rect
         rect = img.get_rect()
@@ -173,6 +182,7 @@ class Sprite:
         self.rotatable = True #是否可以旋转
         self.is_hide = False #是否隐藏
         self._angle = 0
+        self._scale = 1
 
     def add_image(self, image):
         self._images.append(image)
@@ -181,7 +191,7 @@ class Sprite:
         if self.is_hide:
             return
         angle = self._angle if self.rotatable else 0
-        image, rect = self._images[self._image_index].get_image(self._x, self._y, angle)
+        image, rect = self._images[self._image_index].get_image(self._x, self._y, angle, self._scale)
         self._stage._screen.blit(image, rect)
 
 
@@ -212,3 +222,25 @@ class Sprite:
     def set_image_index(self, index):
         self._image_index = index % len(self._images)
 
+    def scale(self, scale):
+        self._scale = scale
+
+    def get_angle(self):
+        return self._angle
+
+    def get_angle_to(self, x, y):
+        return math.degrees(math.atan2(y - self._y, x - self._x))
+    
+    def copy(self):
+        new_sprite = Sprite(self._stage, self._images[0], self._x, self._y)
+        for image in self._images[1:]:
+            new_sprite.add_image(image)
+        new_sprite.rotatable = self.rotatable
+        new_sprite.is_hide = self.is_hide
+        new_sprite._angle = self._angle
+        new_sprite._scale = self._scale
+        new_sprite.set_image_index(self._image_index)
+        return new_sprite
+
+    def remove(self):
+        self._stage._characters.remove(self)
