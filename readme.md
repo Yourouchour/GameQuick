@@ -272,7 +272,7 @@ stage.mainloop()
 
 ### GameQuick 键鼠控制角色
 
-#### 键盘控制角色
+#### 键盘的检测
 
 在 GameQuick 中，键盘控制角色有`KeyVector`类。它包含了一些常用的键位，如WASD等。
 
@@ -287,7 +287,6 @@ stage.add_background_load("background.png")
 
 player = Sprite(stage, SpImage.load("player.png"), (400, 300))
 
-# 键盘控制角色
 def move():
     speed = 100
     while True:
@@ -303,7 +302,7 @@ stage.mainloop()
 
 这时，你可以通过键盘控制角色了。
 
-#### 鼠标控制角色
+#### 鼠标的位置
 
 在 GameQuick 中，鼠标控制角色有`MouseVector`类。
 
@@ -316,7 +315,6 @@ stage.add_background_load("background.png")
 
 player = Sprite(stage, SpImage.load("player.png"), (400, 300))
 
-# 鼠标控制角色
 def move():
     speed = 100
     while True:
@@ -329,6 +327,23 @@ stage.add_script(move())
 
 stage.mainloop()
 ```
+
+#### 鼠标的点击
+
+在 GameQuick 中，不同角色分别拥有自己的鼠标点击事件。当按下鼠标时，舞台会从后向前遍历角色，当遍历到第一个可以被点击的角色时，执行该角色的事件。
+
+不同的点击事件绑定函数如下表格：
+
+|绑定函数|描述|
+|---|---|
+|Sprite.on_left_press|左键按下|
+|Sprite.on_right_press|右键按下|
+|Sprite.on_middle_press|中键按下|
+|Sprite.on_left_release|左键释放|
+|Sprite.on_right_release|右键释放|
+|Sprite.on_middle_release|中键释放|
+
+每一个绑定函数需要一个生成器（Generator）以及可选参数（*args），当事件发生时，会创建一个新的生成器，以 args 为参数，并自动保存在舞台上。
 
 ### GameQuick 角色的复制和删除
 
@@ -380,8 +395,10 @@ def copy():
         player2 = player.copy()
         stage.add_script(copy_move(player2))
         
+
 stage.add_script(move())
 stage.add_script(copy())
+
 
 stage.mainloop()
 ```
@@ -397,3 +414,38 @@ player.remove()
 ```
 
 remove 只会将角色从舞台上移除，但不会删除角色对象。
+
+### GameQuick 角色的互动
+
+#### 角色的标签
+
+每一个角色都有若干个标签，默认情况下是`{"all"}`。
+
+你可以通过`Sprite.add_tag`来添加标签。
+
+```python
+player.add_tag("player")
+```
+
+#### 角色的碰撞
+
+在 GameQuick 中，你可以通过`Sprite.collide`来检测角色是否碰撞。
+
+```python
+player.collide("player")
+```
+
+这个方法会返回一个列表，列表中的元素是所有和`player`碰撞的角色。
+
+#### 角色的绑定
+
+在 GameQuick 中，你可以通过`Sprite.bind`来绑定角色。
+
+A 绑定角色 B 意味着被绑定的角色 B 不再由舞台控制，而是由 A 控制。
+当 A 被移动时，B会跟着移动；当 A 被旋转时，B 会以 A 为中心旋转。
+
+#### 角色的解绑
+
+在 GameQuick 中，你可以通过`Sprite.unbind`来解绑角色。
+
+解绑之后，角色重新归为舞台控制。
