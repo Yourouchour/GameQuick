@@ -35,7 +35,7 @@ class KeyVector:
             vector.x += 1
         if vector.length() > 0:
             vector = vector.normalize()
-        return vector.angle_to((0, 0)), vector.length()
+        return vector.angle_to((0, 1)), vector.length()
     
     @classmethod
     def arrow(cls):
@@ -51,7 +51,7 @@ class KeyVector:
             vector.x += 1
         if vector.length() > 0:
             vector = vector.normalize()
-        return vector.angle_to((0, 0)), vector.length()
+        return vector.angle_to((0, 1)), vector.length()
     
 class MouseVector:
 
@@ -79,7 +79,6 @@ class Lines:
             x1 + r * (x2 - x1),
             y1 + r * (y2 - y1)
         )
-
 
 class Stage:
     def __init__(self, width, height):
@@ -130,7 +129,9 @@ class Stage:
 
     
     def button(self, type, button, pos):
-        for i in range(len(self._sprites)-1, 0, -1):
+        if button >= 4:
+            return
+        for i in range(len(self._sprites)-1, -1, -1):
             character = self._sprites[i] # 从后往前遍历
             if character.is_hide:
                 continue
@@ -243,14 +244,18 @@ class Sprite:
         self._image_index = 0
         self._x = x
         self._y = y
+        self._last_x = x
+        self._last_y = y
         self._stage._sprites.append(self)
         self.rotatable = True #是否可以旋转
         self.is_hide = False #是否隐藏
         self._angle = 0
+        self._last_angle = 0
         self._scale = 1
         self._tags = {"all"}
         self._rect = None
         self._button_scripts = [[None, None, None],[None, None, None]]
+        self._children:List[Sprite] = []
 
     def add_tags(self, types:List[str]):
         self._tags = self._tags.union(types)
@@ -265,11 +270,26 @@ class Sprite:
         image, rect = self._images[self._image_index].get_image(self._x, self._y, angle, self._scale)
         self._rect = rect
         self._stage._screen.blit(image, rect)
-
-
+        dx = self._x - self._last_x
+        dy = self._y - self._last_y
+        da = self._angle - self._last_angle
+        for child in self._children:
+            child._x += dx
+            child._y += dy
+            
+            child._x , child._y = (
+                (child._x - self._x) * math.cos(math.radians(da)) - (child._y - self._y) * math.sin(math.radians(da)) + self._x,
+                (child._x - self._x) * math.sin(math.radians(da)) + (child._y - self._y) * math.cos(math.radians(da)) + self._y
+            )
+            child._angle += da
+            child.show()
+        self._last_x = self._x
+        self._last_y = self._y
+        self._last_angle = self._angle
+            
     def move(self, length):
-        self._x += length * math.cos(math.radians(self._angle))
-        self._y += length * math.sin(math.radians(self._angle))
+        self._x += length * math.sin(math.radians(self._angle))
+        self._y -= length * math.cos(math.radians(self._angle))
 
     def move_to(self, x, y):
         self._x = x
@@ -300,7 +320,7 @@ class Sprite:
         return self._angle
 
     def get_angle_to(self, x, y):
-        return math.degrees(math.atan2(y - self._y, x - self._x))
+        return math.degrees(math.atan2( x - self._x, self._y - y))
     
     def copy(self):
         new_sprite = Sprite(self._stage, self._images[0], self._x, self._y)
@@ -311,6 +331,7 @@ class Sprite:
         new_sprite._angle = self._angle
         new_sprite._scale = self._scale
         new_sprite._tags = self._tags.copy()
+        new_sprite._button_scripts = self._button_scripts.copy()
         new_sprite.set_image_index(self._image_index)
         return new_sprite
 
@@ -350,3 +371,11 @@ class Sprite:
 
     def on_right_release(self, script, *args):
         self._button_scripts[1][2] = [script, args]
+
+    def bind(self, sprite):
+        self._stage._sprites.remove(sprite)
+        self._children.append(sprite)
+
+    def unbind(self, sprite):
+        self._children.remove(sprite)
+        self._stage._sprites.append(sprite)
