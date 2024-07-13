@@ -228,7 +228,7 @@ stage.mainloop()
 
 这时，你应该能看到一个角色在屏幕上。
 
-#### 切换外貌
+#### 切换外貌与等待
 
 GameQuick 允许你的角色拥有多个外貌，通过
 `Sprite.next_image`、`Sprite.last_image`和`Sprite.set_image_index`方法，你可以切换角色的外貌。
@@ -243,6 +243,14 @@ while True:
     timer = 0.5
     while timer > 0:
         timer -= yield
+```
+
+**更正：** 在最新的GameQuick中，我们可以使用`yield from`来进行等待，这使得等待程序更加简洁。
+
+```python
+while True:
+    # 等待 0.5 秒
+    yield from gamequick.sleep(0.5)
 ```
 
 下面我们可以制作一个闪烁的角色了：
