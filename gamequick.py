@@ -1,4 +1,4 @@
-from typing import Any, List, Generator
+from typing import List, Generator
 import pygame
 import time
 import math
@@ -6,6 +6,8 @@ import os
 import random
 
 os.system('')
+
+_unique_id = 0
 
 def error(text):
     print(f'\033[91m[Error] {text}\033[0m')
@@ -18,6 +20,94 @@ def info(text):
 
 def success(text):
     print(f'\033[92m[Success] {text}\033[0m')
+
+def sleep(second):
+    timer = second
+    while timer > 0:
+        timer -= yield
+
+def randint(a, b):
+    return random.randint(a, b)
+
+class Keys:
+    Q = pygame.K_q
+    W = pygame.K_w
+    E = pygame.K_e
+    R = pygame.K_r
+    T = pygame.K_t
+    Y = pygame.K_y
+    U = pygame.K_u
+    I = pygame.K_i
+    O = pygame.K_o
+    P = pygame.K_p
+    A = pygame.K_a
+    S = pygame.K_s
+    D = pygame.K_d
+    F = pygame.K_f
+    G = pygame.K_g
+    H = pygame.K_h
+    J = pygame.K_j
+    K = pygame.K_k
+    L = pygame.K_l
+    Z = pygame.K_z
+    X = pygame.K_x
+    C = pygame.K_c
+    V = pygame.K_v
+    B = pygame.K_b
+    C = pygame.K_c
+    N = pygame.K_n
+    M = pygame.K_m
+
+    K1 = pygame.K_1
+    K2 = pygame.K_2
+    K3 = pygame.K_3
+    K4 = pygame.K_4
+    K5 = pygame.K_5
+    K6 = pygame.K_6
+    K7 = pygame.K_7
+    K8 = pygame.K_8
+    K9 = pygame.K_9
+    K0 = pygame.K_0
+
+    F1 = pygame.K_F1
+    F2 = pygame.K_F2
+    F3 = pygame.K_F3
+    F4 = pygame.K_F4
+    F5 = pygame.K_F5
+    F6 = pygame.K_F6
+    F7 = pygame.K_F7
+    F8 = pygame.K_F8
+    F9 = pygame.K_F9
+    F10 = pygame.K_F10
+    F11 = pygame.K_F11
+    F12 = pygame.K_F12
+
+    MINUS = pygame.K_MINUS                  # -
+    EQUALS = pygame.K_EQUALS                # =
+    BACKSLASH = pygame.K_BACKSLASH          # \
+    LEFTBRACKET = pygame.K_LEFTBRACKET      # [
+    RIGHTBRACKET = pygame.K_RIGHTBRACKET    # ]
+
+ 
+    UP = pygame.K_UP
+    DOWN = pygame.K_DOWN
+    LEFT = pygame.K_LEFT
+    RIGHT = pygame.K_RIGHT
+    
+    SPACE = pygame.K_SPACE
+    ENTER = pygame.K_RETURN
+    ESC = pygame.K_ESCAPE
+    TAB = pygame.K_TAB
+    LSHIFT = pygame.K_LSHIFT
+    LCTRL = pygame.K_LCTRL
+    LALT = pygame.K_LALT
+    RSHIFT = pygame.K_RSHIFT
+    RCTRL = pygame.K_RCTRL
+    RALT = pygame.K_RALT
+    BACKSPACE = pygame.K_BACKSPACE
+    DELETE = pygame.K_DELETE
+    PAGEUP = pygame.K_PAGEUP
+    PAGEDOWN = pygame.K_PAGEDOWN
 
 class KeyVector:
 
@@ -95,6 +185,7 @@ class Stage:
         self.running = True
         self.fps = 30
         self._freeze_time = 0
+        self._keydown_scripts = []
     
     def title(self, title):
         pygame.display.set_caption(title)
@@ -105,6 +196,9 @@ class Stage:
     def add_script(self, script:Generator):
         next(script) # 执行一次脚本
         self._scripts.append(script)
+
+    def add_keydown_script(self, script):
+        self._keydown_scripts.append(script)
 
     def add_background(self, image):
         image = pygame.transform.scale(image, (self._w, self._h))
@@ -126,7 +220,6 @@ class Stage:
 
     def exit(self):
         self.running = False
-
     
     def button(self, type, button, pos):
         if button >= 4:
@@ -165,8 +258,11 @@ class Stage:
             for event in events:
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     self.button(0, event.button, event.pos)
-                if event.type == pygame.MOUSEBUTTONUP:
+                elif event.type == pygame.MOUSEBUTTONUP:
                     self.button(1, event.button, event.pos)
+                elif event.type == pygame.KEYDOWN:
+                    for script in self._keydown_scripts:
+                        self.add_script(script(event.key))
 
             self._screen.fill((255, 255, 255))
             if len(self._backgrounds) > 0:
@@ -182,7 +278,6 @@ class Stage:
                 character.show()
 
             pygame.display.flip()
-
 
             if delta_time < 1 / self.fps:
                 time.sleep((1 / self.fps - delta_time))
@@ -239,6 +334,9 @@ class SpImage:
 
 class Sprite:
     def __init__(self, stage:Stage, image:SpImage, x=0, y=0):
+        global _unique_id
+        self._id = _unique_id
+        _unique_id += 1
         self._stage = stage
         self._images = [image]
         self._image_index = 0
@@ -336,7 +434,10 @@ class Sprite:
         return new_sprite
 
     def remove(self):
-        self._stage._sprites.remove(self)
+        for i in range(len(self._stage._sprites)):
+            if self._stage._sprites[i]._id == self._id:
+                self._stage._sprites.pop(i)
+                break
 
     def collide(self, tags=None):
         if tags is None:
