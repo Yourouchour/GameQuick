@@ -4,14 +4,6 @@
 
 GameQuick 是一个基于 pygame 的游戏开发框架，旨在帮助开发者快速构建游戏原型和游戏开发。它提供了一套较为完整的工具和组件，使得开发者可以更加高效地进行游戏开发。
 
-## GameQuick 安装
-
-你可以通过 pip 安装 GameQuick：
-
-```bash
-pip install gamequick
-```
-
 ## GameQuick 使用
 
 ### GameQuick 基本概念
@@ -440,7 +432,7 @@ player.add_tag("player")
 在 GameQuick 中，你可以通过`Sprite.collide`来检测角色是否碰撞。
 
 ```python
-player.collide("player")
+player.collide(["player"])
 ```
 
 这个方法会返回一个列表，列表中的元素是所有和`player`碰撞的角色。
